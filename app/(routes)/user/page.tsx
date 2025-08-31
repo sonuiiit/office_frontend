@@ -110,8 +110,8 @@ function App() {
       {/* Header */}
       <header className="flex justify-between items-center px-6 py-3  bg-[#a20e37] border-b shadow-sm">
         <div className="flex items-center gap-2">
-          <img src="/pnb.png" alt="PNB Logo" className="w-10 h-10" />
-          <span className="text-lg font-semibold text-gray-800">
+          <img src="/pnb.png" alt="PNB Logo" className="w-20 h-10" />
+          <span className="text-lg font-semibold text-white">
             PNB CHD AI Chatbot
           </span>
         </div>
@@ -206,14 +206,14 @@ function App() {
           className="flex-1 resize-none min-h-[50px]"
         />
 
-        <label className="cursor-pointer">
+        {/* <label className="cursor-pointer">
           <input
             type="file"
             className="hidden"
             onChange={(e) => setFile(e.target.files?.[0] || null)}
           />
           <span className="px-3 py-2 bg-gray-200 rounded-md">📎</span>
-        </label>
+        </label> */}
 
         <Button
           onClick={sendMessage}
@@ -226,70 +226,80 @@ function App() {
 
       {/* Tickets Sidebar */}
       <Sheet open={isTicketsOpen} onOpenChange={setIsTicketsOpen}>
-        <SheetContent side="right" className="p-6 w-[400px]">
-          <SheetHeader>
-            <SheetTitle className="text-lg font-semibold">
-              All Tickets
-            </SheetTitle>
-          </SheetHeader>
+  <SheetContent side="right" className="p-6 w-[420px] bg-gray-50">
+    <SheetHeader>
+      <SheetTitle className="text-xl font-bold text-gray-800">
+        🎟️ Support Tickets
+      </SheetTitle>
+      <p className="text-sm text-gray-500">
+        Here’s a list of all raised tickets.
+      </p>
+    </SheetHeader>
 
-          {loadingTickets ? (
-            <p className="mt-4 text-gray-600">⏳ Loading tickets...</p>
-          ) : tickets.length === 0 ? (
-            <p className="mt-4 text-gray-500">No tickets found.</p>
-          ) : (
-            <div className="mt-4 space-y-4 max-h-[80vh] overflow-y-auto">
-              {tickets.map((ticket, idx) => (
-                <div
-                  key={idx}
-                  className="border rounded-md p-4 bg-white shadow-sm"
-                >
-                  <p className="text-sm text-gray-600">
-                    <strong>ID:</strong> {ticket.recordId}
-                  </p>
-                  <p className="text-sm font-medium mt-1">
-                    {ticket.ticket_text}
-                  </p>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Dept: {ticket.department}
-                  </p>
-
-                  {ticket.ticket_files.length > 0 && (
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {ticket.ticket_files.map((file, i) =>
-                        file.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
-                          <a
-                            key={i}
-                            href={file}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            <img
-                              src={file}
-                              alt={`file-${i}`}
-                              className="w-16 h-16 rounded border object-cover cursor-pointer"
-                            />
-                          </a>
-                        ) : (
-                          <a
-                            key={i}
-                            href={file}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600 text-xs underline"
-                          >
-                            📄 File {i + 1}
-                          </a>
-                        )
-                      )}
-                    </div>
-                  )}
-                </div>
-              ))}
+    {loadingTickets ? (
+      <p className="mt-6 text-gray-600">⏳ Loading tickets...</p>
+    ) : tickets.length === 0 ? (
+      <p className="mt-6 text-gray-500 text-center">No tickets found.</p>
+    ) : (
+      <div className="mt-6 space-y-4 max-h-[80vh] overflow-y-auto pr-2">
+        {tickets.map((ticket, idx) => (
+          <div
+            key={idx}
+            className="rounded-xl border bg-white shadow-md p-5 hover:shadow-lg transition"
+          >
+            {/* Ticket Header */}
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-mono text-gray-500">
+                #{ticket.recordId.slice(0, 8)}...
+              </span>
+              <span className="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-700 font-medium">
+                {ticket.department}
+              </span>
             </div>
-          )}
-        </SheetContent>
-      </Sheet>
+
+            {/* Ticket Text */}
+            <p className="mt-3 text-gray-800 text-sm leading-relaxed">
+              {ticket.ticket_text}
+            </p>
+
+            {/* Files */}
+            {ticket.ticket_files.length > 0 && (
+              <div className="mt-4 grid grid-cols-3 gap-2">
+                {ticket.ticket_files.map((file, i) =>
+                  file.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                    <a
+                      key={i}
+                      href={file}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <img
+                        src={file}
+                        alt={`file-${i}`}
+                        className="w-full h-20 rounded-md border object-cover cursor-pointer hover:opacity-80 transition"
+                      />
+                    </a>
+                  ) : (
+                    <a
+                      key={i}
+                      href={file}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="col-span-3 flex items-center gap-2 text-xs text-blue-600 hover:underline"
+                    >
+                      📄 File {i + 1}
+                    </a>
+                  )
+                )}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    )}
+  </SheetContent>
+</Sheet>
+
     </div>
   );
 }

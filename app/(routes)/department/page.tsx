@@ -52,7 +52,7 @@ const DepartmentTickets: React.FC = () => {
       setLoading(true);
       try {
         const res = await fetch(
-          `https://office-project-i75v.onrender.com/department/get_all_tickets_for_department?department=${encodeURIComponent(
+          `${process.env.NEXT_PUBLIC_API}/department/get_all_tickets_for_department?department=${encodeURIComponent(
             selectedDept
           )}`
         );
@@ -77,7 +77,7 @@ const DepartmentTickets: React.FC = () => {
 
     try {
       const res = await fetch(
-        "https://office-project-i75v.onrender.com/department/update_ticket_status",
+        `${process.env.NEXT_PUBLIC_API}/department/update_ticket_status`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -121,7 +121,7 @@ const DepartmentTickets: React.FC = () => {
     setAiExplanation("");
     try {
       const res = await fetch(
-        `https://office-project-i75v.onrender.com/department/get_ai_explanation_for_ticket?recordId=${ticket.recordId}`
+        `${process.env.NEXT_PUBLIC_API}/department/get_ai_explanation_for_ticket?recordId=${ticket.recordId}`
       );
       const data = await res.json();
       setAiExplanation(data || "No explanation available.");
