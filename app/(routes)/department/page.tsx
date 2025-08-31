@@ -17,16 +17,19 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
 
 interface Ticket {
   ticket_files: string[];
   department: string;
   ticket_text: string;
   recordId: string;
+  status?: string; // ✅ include status from backend
 }
 
-const departments = ["Finance", "Network", "ATM switch", "Mail Messaging"];
-const statusOptions = ["Open", "In Progress", "Resolved", "Closed"];
+const departments = ["FI", "Network", "ATM Switch", "Mail Messaging"];
+const statusOptions = ["Open", "Resolved"];
 
 const DepartmentTickets: React.FC = () => {
   const [selectedDept, setSelectedDept] = useState<string>("");
@@ -71,7 +74,8 @@ const DepartmentTickets: React.FC = () => {
   // Submit ticket update
   const handleUpdate = async () => {
     if (!selectedTicket || !status) {
-      alert("Please select a status and add remarks");
+  
+      toast("Please select a status and add remarks")
       return;
     }
 
@@ -91,7 +95,8 @@ const DepartmentTickets: React.FC = () => {
 
       const data = await res.json();
       if (res.ok) {
-        alert("✅ Ticket updated successfully");
+        toast("✅ Ticket updated successfully");
+        
         setOpenDialog(false);
         setRemarks("");
         setStatus("");
@@ -101,6 +106,7 @@ const DepartmentTickets: React.FC = () => {
             t.recordId === selectedTicket.recordId
               ? {
                   ...t,
+                  status,
                   ticket_text: t.ticket_text + `\n\n[Updated: ${remarks}]`,
                 }
               : t
@@ -132,6 +138,17 @@ const DepartmentTickets: React.FC = () => {
       setAiDialogOpen(true);
     } finally {
       setAiLoadingId(null);
+    }
+  };
+
+  // Style for status badge
+  const getStatusStyle = (status: string) => {
+    switch (status) {
+      case "Resolved":
+        return "bg-green-100 text-green-700";
+     
+      default:
+        return "bg-yellow-100 text-yellow-700"; // Open
     }
   };
 
@@ -174,9 +191,19 @@ const DepartmentTickets: React.FC = () => {
           {tickets.map((ticket, idx) => (
             <Card key={idx} className="rounded-xl shadow hover:bg-gray-50">
               <CardContent className="p-4 space-y-2">
-                <h2 className="font-semibold text-lg text-blue-800">
-                  {ticket.department} - #{ticket.recordId}
-                </h2>
+                <div className="flex justify-between items-center">
+                  <h2 className="font-semibold text-lg text-blue-800">
+                    {ticket.department} - #{ticket.recordId}
+                  </h2>
+                  <Badge
+                    className={`${getStatusStyle(
+                      ticket.status || "Open"
+                    )} px-2 py-1 rounded-full`}
+                  >
+                    {ticket.status || "Open"}
+                  </Badge>
+                </div>
+
                 <p className="text-gray-700 whitespace-pre-line">
                   {ticket.ticket_text}
                 </p>

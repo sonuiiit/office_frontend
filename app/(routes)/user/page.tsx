@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import RaiseTicketDialog from "@/app/components/RaiseTicketDialog";
+import { toast } from "sonner";
 
 interface Message {
   sender: "user" | "bot";
@@ -24,7 +25,9 @@ interface Ticket {
   ticket_text: string;
   ticket_files: string[];
   department: string;
+  status: string; // ✅ Added status
 }
+
 
 function App() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -40,6 +43,7 @@ function App() {
   // ✅ Create a new chat id when component mounts
   useEffect(() => {
     setRecordId(uuidv4());
+  
   }, []);
 
   const startNewChat = () => {
@@ -255,6 +259,22 @@ function App() {
               <span className="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-700 font-medium">
                 {ticket.department}
               </span>
+                 <span
+          className={`text-xs px-2 py-1 rounded-full font-medium
+            ${
+              ticket.status === "Open"
+                ? "bg-yellow-100 text-yellow-700"
+                : ticket.status === "In Progress"
+                ? "bg-blue-100 text-blue-700"
+                : ticket.status === "Resolved"
+                ? "bg-green-100 text-green-700"
+                : ticket.status === "Closed"
+                ? "bg-gray-200 text-gray-700"
+                : "bg-gray-100 text-gray-600"
+            }`}
+        >
+          {ticket.status || "Open"}
+        </span>
             </div>
 
             {/* Ticket Text */}
