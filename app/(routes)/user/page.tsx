@@ -53,7 +53,8 @@ function App() {
   const sendMessage = async () => {
     if (loading || (!inputText.trim() && !file)) return;
     setLoading(true);
-
+ setInputText("");
+     setFile(null);
     const userMessage: Message = {
       sender: "user",
       text: inputText,
@@ -69,7 +70,7 @@ function App() {
           user_message: inputText,
         }
       );
-
+  
       const botReply: string = response.data.response || "No response received";
 
       setMessages((prev) => [
@@ -87,8 +88,8 @@ function App() {
         },
       ]);
     } finally {
-      setInputText("");
-      setFile(null);
+   
+    
       setLoading(false);
     }
   };
