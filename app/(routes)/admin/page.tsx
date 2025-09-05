@@ -10,6 +10,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
@@ -20,7 +21,7 @@ interface Ticket {
   ticket_text: string;
   ticket_files: string[];
   department: string;
-  status?: string; // optional
+  status?: string;
 }
 
 const TicketsList: React.FC = () => {
@@ -31,6 +32,9 @@ const TicketsList: React.FC = () => {
   const [openDialog, setOpenDialog] = useState(false);
   const [stringText, setStringText] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  // Modal for full ticket text
+  const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
 
   useEffect(() => {
     const fetchTickets = async () => {
@@ -49,7 +53,6 @@ const TicketsList: React.FC = () => {
     fetchTickets();
   }, []);
 
-  // Handle Add Knowledge Submit
   const handleAddKnowledge = async () => {
     if (!stringText.trim()) {
       toast("Please enter some text");
@@ -58,10 +61,7 @@ const TicketsList: React.FC = () => {
 
     setSubmitting(true);
     try {
-      const payload = {
-        recordId: uuidv4(),
-        string_text: stringText,
-      };
+      const payload = { recordId: uuidv4(), string_text: stringText };
       const res = await axios.post(
         `${process.env.NEXT_PUBLIC_API}/admin/add_knowledge_to_chatbot`,
         payload
@@ -83,16 +83,15 @@ const TicketsList: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-gray-100">
+    <div className="flex flex-col h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-[#a20e37] w-full z-50 fixed top-0 left-0 text-white flex items-center justify-between p-4 shadow">
-        {/* Left Section */}
+      <div className="bg-[#a20e37] w-full fixed top-0 left-0 z-50 text-white flex items-center justify-between p-4 shadow-md">
         <div className="flex items-center gap-3">
           <img src="/pnb.png" alt="PNB" className="h-10 w-20" />
-          <h1 className="text-lg font-semibold">PNB Tickets Dashboard</h1>
+          <h1 className="text-lg font-semibold tracking-wide">
+            PNB Tickets Dashboard
+          </h1>
         </div>
-
-        {/* Right Section - Button */}
         <Button
           variant="secondary"
           className="bg-white text-[#a20e37] hover:bg-gray-100"
@@ -103,11 +102,11 @@ const TicketsList: React.FC = () => {
       </div>
 
       {/* Tickets Area */}
-      <div className="flex-1 mt-20 max-w-5xl mx-auto p-4 space-y-4">
+      <div className="flex-1 mt-24 max-w-5xl mx-auto p-4 space-y-4">
         {loading ? (
-          <p className="text-gray-500">Loading tickets...</p>
+          <p className="text-gray-500 text-center">Loading tickets...</p>
         ) : tickets.length === 0 ? (
-          <p className="text-gray-500">No tickets found.</p>
+          <p className="text-gray-500 text-center">No tickets found.</p>
         ) : (
           tickets.map((ticket) => {
             const status = ticket.status || "Open";
@@ -119,30 +118,39 @@ const TicketsList: React.FC = () => {
             return (
               <Card
                 key={ticket.recordId}
-                className="shadow border border-gray-200 rounded-lg"
+                className="shadow-sm border border-gray-200 rounded-xl hover:shadow-md transition-all"
               >
-                <CardContent className="p-5 space-y-3">
-                  {/* Ticket Header */}
+                <CardContent className="p-4 space-y-3">
+                  {/* Header */}
                   <div className="flex justify-between items-center">
-                    <h2 className="text-base font-semibold text-gray-800">
-                      {ticket.ticket_text}
-                    </h2>
-                    <Badge className={`${statusColor} px-2 py-1 rounded-full`}>
+                    <Badge variant="secondary" className="bg-gray-200 text-gray-800">
+                      {ticket.department}
+                    </Badge>
+                    <Badge className={`${statusColor} px-3 py-1 rounded-full`}>
                       {status}
                     </Badge>
                   </div>
 
-                  {/* Department */}
-                  <p className="text-sm text-gray-600">
-                    Department:{" "}
-                    <Badge variant="secondary" className="ml-1">
-                      {ticket.department}
-                    </Badge>
+                  {/* Ticket Text (truncated) */}
+                  <p className="text-gray-700 text-sm leading-relaxed">
+                    {ticket.ticket_text.length > 120
+                      ? ticket.ticket_text.slice(0, 120) + "..."
+                      : ticket.ticket_text}
                   </p>
+                  {ticket.ticket_text.length > 120 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-blue-600 text-xs p-0 hover:underline"
+                      onClick={() => setSelectedTicket(ticket)}
+                    >
+                      🔍 Read More
+                    </Button>
+                  )}
 
                   {/* Files */}
                   {ticket.ticket_files.length > 0 && (
-                    <div className="flex flex-wrap gap-3 mt-2">
+                    <div className="flex flex-wrap gap-2 mt-2">
                       {ticket.ticket_files.map((file, i) =>
                         file.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
                           <a
@@ -150,11 +158,12 @@ const TicketsList: React.FC = () => {
                             href={file}
                             target="_blank"
                             rel="noopener noreferrer"
+                            className="relative group"
                           >
                             <img
                               src={file}
                               alt={`ticket-file-${i}`}
-                              className="w-20 h-20 rounded border object-cover shadow-sm hover:scale-105 transition"
+                              className="w-20 h-20 rounded-md border object-cover shadow-sm group-hover:scale-105 transition-transform"
                             />
                           </a>
                         ) : (
@@ -184,7 +193,6 @@ const TicketsList: React.FC = () => {
           <DialogHeader>
             <DialogTitle>Add Knowledge to Chatbot</DialogTitle>
           </DialogHeader>
-
           <div className="space-y-4">
             <Textarea
               placeholder="Enter knowledge text..."
@@ -192,7 +200,6 @@ const TicketsList: React.FC = () => {
               onChange={(e) => setStringText(e.target.value)}
               rows={5}
             />
-
             <div className="flex justify-end gap-3">
               <Button variant="outline" onClick={() => setOpenDialog(false)}>
                 Cancel
@@ -206,6 +213,43 @@ const TicketsList: React.FC = () => {
               </Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Read More Dialog */}
+      <Dialog open={!!selectedTicket} onOpenChange={() => setSelectedTicket(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Ticket Details</DialogTitle>
+            <DialogDescription className="whitespace-pre-line text-sm">
+              {selectedTicket?.ticket_text}
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedTicket?.ticket_files.length ? (
+            <div className="flex flex-wrap gap-3 mt-3">
+              {selectedTicket.ticket_files.map((file, i) =>
+                file.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                  <img
+                    key={i}
+                    src={file}
+                    alt={`file-${i}`}
+                    className="w-24 h-24 rounded-md border object-cover"
+                  />
+                ) : (
+                  <a
+                    key={i}
+                    href={file}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 text-xs underline"
+                  >
+                    📄 File {i + 1}
+                  </a>
+                )
+              )}
+            </div>
+          ) : null}
         </DialogContent>
       </Dialog>
     </div>

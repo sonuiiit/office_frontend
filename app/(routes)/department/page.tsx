@@ -19,13 +19,15 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { motion, AnimatePresence } from "framer-motion";
+import { ChevronDown, ChevronUp } from "lucide-react";
 
 interface Ticket {
   ticket_files: string[];
   department: string;
   ticket_text: string;
   recordId: string;
-  status?: string; // ✅ include status from backend
+  status?: string;
 }
 
 const departments = ["FI", "Network", "ATM Switch", "Mail Messaging"];
@@ -47,7 +49,9 @@ const DepartmentTickets: React.FC = () => {
   const [aiExplanation, setAiExplanation] = useState("");
   const [aiLoadingId, setAiLoadingId] = useState<string | null>(null);
 
-  // Fetch tickets when department changes
+  // Track which ticket is expanded
+  const [expandedTicket, setExpandedTicket] = useState<string | null>(null);
+
   useEffect(() => {
     if (!selectedDept) return;
 
@@ -71,11 +75,9 @@ const DepartmentTickets: React.FC = () => {
     fetchTickets();
   }, [selectedDept]);
 
-  // Submit ticket update
   const handleUpdate = async () => {
     if (!selectedTicket || !status) {
-  
-      toast("Please select a status and add remarks")
+      toast("Please select a status and add remarks");
       return;
     }
 
@@ -96,11 +98,9 @@ const DepartmentTickets: React.FC = () => {
       const data = await res.json();
       if (res.ok) {
         toast("✅ Ticket updated successfully");
-        
         setOpenDialog(false);
         setRemarks("");
         setStatus("");
-        // Refresh tickets after update
         setTickets((prev) =>
           prev.map((t) =>
             t.recordId === selectedTicket.recordId
@@ -121,7 +121,6 @@ const DepartmentTickets: React.FC = () => {
     }
   };
 
-  // Get AI explanation
   const handleGetAIExplanation = async (ticket: Ticket) => {
     setAiLoadingId(ticket.recordId);
     setAiExplanation("");
@@ -141,20 +140,18 @@ const DepartmentTickets: React.FC = () => {
     }
   };
 
-  // Style for status badge
   const getStatusStyle = (status: string) => {
     switch (status) {
       case "Resolved":
         return "bg-green-100 text-green-700";
-     
       default:
-        return "bg-yellow-100 text-yellow-700"; // Open
+        return "bg-yellow-100 text-yellow-700";
     }
   };
 
   return (
     <div className="min-h-screen bg-gray-100">
-      {/* Fixed Navbar */}
+      {/* Navbar */}
       <header className="flex justify-between items-center px-6 py-3 bg-[#a20e37] border-b shadow-sm fixed top-0 left-0 w-full z-50">
         <div className="flex items-center gap-2">
           <img src="/pnb.png" alt="PNB Logo" className="w-20 h-10" />
@@ -166,7 +163,6 @@ const DepartmentTickets: React.FC = () => {
 
       {/* Content */}
       <div className="pt-24 px-4 max-w-4xl mx-auto space-y-6">
-        {/* Department Dropdown */}
         <Select onValueChange={(val) => setSelectedDept(val)}>
           <SelectTrigger className="w-full bg-white shadow">
             <SelectValue placeholder="Select Department" />
@@ -180,77 +176,117 @@ const DepartmentTickets: React.FC = () => {
           </SelectContent>
         </Select>
 
-        {/* Tickets */}
         {loading && <p className="text-gray-500">Loading tickets...</p>}
-
         {!loading && selectedDept && tickets.length === 0 && (
           <p className="text-gray-500">No tickets found for {selectedDept}</p>
         )}
 
-        <div className="grid gap-4">
-          {tickets.map((ticket, idx) => (
-            <Card key={idx} className="rounded-xl shadow hover:bg-gray-50">
-              <CardContent className="p-4 space-y-2">
-                <div className="flex justify-between items-center">
-                  <h2 className="font-semibold text-lg text-blue-800">
-                    {ticket.department} - #{ticket.recordId}
-                  </h2>
-                  <Badge
-                    className={`${getStatusStyle(
-                      ticket.status || "Open"
-                    )} px-2 py-1 rounded-full`}
-                  >
-                    {ticket.status || "Open"}
-                  </Badge>
-                </div>
-
-                <p className="text-gray-700 whitespace-pre-line">
-                  {ticket.ticket_text}
-                </p>
-
-                {/* Show files if available */}
-                {ticket.ticket_files.length > 0 && (
-                  <div className="flex gap-2 flex-wrap mt-2">
-                    {ticket.ticket_files.map((file, i) => (
-                      <a
-                        key={i}
-                        href={file}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="px-3 py-1 text-sm bg-gray-200 rounded hover:bg-gray-300"
-                      >
-                        📎 {file}
-                      </a>
-                    ))}
+        <div className="grid gap-3 ">
+          {tickets.map((ticket) => {
+            const isExpanded = expandedTicket === ticket.recordId;
+            return (
+              <Card
+                key={ticket.recordId}
+                className="rounded-lg  shadow-sm hover:shadow-md transition"
+              >
+                <CardContent className="p-3 space-y-2">
+                  {/* Header */}
+                  <div className="flex justify-between items-center">
+                    <h2 className="font-medium text-sm text-blue-800">
+                      {ticket.department} - #{ticket.recordId}
+                    </h2>
+                    <Badge
+                      className={`${getStatusStyle(
+                        ticket.status || "Open"
+                      )} px-2 py-0.5 rounded-full text-xs`}
+                    >
+                      {ticket.status || "Open"}
+                    </Badge>
                   </div>
-                )}
 
-                {/* Action Buttons */}
-                <div className="flex gap-3 mt-3">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => {
-                      setSelectedTicket(ticket);
-                      setOpenDialog(true);
-                    }}
-                  >
-                    ✏️ Update
-                  </Button>
-                  <Button
-                    size="sm"
-                    onClick={() => handleGetAIExplanation(ticket)}
-                    disabled={aiLoadingId === ticket.recordId}
-                  >
-                    🤖{" "}
-                    {aiLoadingId === ticket.recordId
-                      ? "Loading..."
-                      : "AI Explanation"}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                  {/* Ticket Text with Animation */}
+                  <AnimatePresence initial={false}>
+                    <motion.p
+                      key={isExpanded ? "expanded" : "collapsed"}
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="text-gray-700 whitespace-pre-line text-sm overflow-hidden"
+                    >
+                      {isExpanded
+                        ? ticket.ticket_text
+                        : ticket.ticket_text.length > 80
+                        ? ticket.ticket_text.slice(0, 80) + "..."
+                        : ticket.ticket_text}
+                    </motion.p>
+                  </AnimatePresence>
+
+                  {/* Expand toggle with icon */}
+                  {ticket.ticket_text.length > 80 && (
+                    <button
+                      onClick={() =>
+                        setExpandedTicket(
+                          isExpanded ? null : ticket.recordId
+                        )
+                      }
+                      className="flex items-center justify-end gap-1 text-xs text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-full px-3 py-1 w-fit ml-auto transition"
+                    >
+                      {isExpanded ? "Show Less" : "Read More"}
+                      {isExpanded ? (
+                        <ChevronUp className="w-3 h-3" />
+                      ) : (
+                        <ChevronDown className="w-3 h-3" />
+                      )}
+                    </button>
+                  )}
+
+                  {/* Files (only when expanded) */}
+                  {isExpanded && ticket.ticket_files.length > 0 && (
+                    <div className="flex gap-2 flex-wrap mt-2">
+                      {ticket.ticket_files.map((file, i) => (
+                        <a
+                          key={i}
+                          href={file}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-2 py-1 text-xs bg-gray-100 rounded hover:bg-gray-200"
+                        >
+                          📎 File {i + 1}
+                        </a>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Action Buttons */}
+                  <div className="flex gap-2 mt-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-xs h-7 px-2"
+                      onClick={() => {
+                        setSelectedTicket(ticket);
+                        setOpenDialog(true);
+                      }}
+                    >
+                      ✏️ Update
+                    </Button>
+                    <Button
+                      size="sm"
+                      className="text-xs h-7 px-2"
+                      onClick={() => handleGetAIExplanation(ticket)}
+                      disabled={aiLoadingId === ticket.recordId}
+                    >
+                      🤖{" "}
+                      {aiLoadingId === ticket.recordId
+                        ? "Loading..."
+                        : "AI Explanation"}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       </div>
 
@@ -260,14 +296,11 @@ const DepartmentTickets: React.FC = () => {
           <DialogHeader>
             <DialogTitle>Update Ticket Status</DialogTitle>
           </DialogHeader>
-
           {selectedTicket && (
             <div className="space-y-4">
-              <p className="text-gray-700 whitespace-pre-line">
+              <p className="text-gray-700 whitespace-pre-line text-sm">
                 <strong>Ticket:</strong> {selectedTicket.ticket_text}
               </p>
-
-              {/* Status Dropdown */}
               <Select onValueChange={(val) => setStatus(val)}>
                 <SelectTrigger className="w-full bg-white shadow">
                   <SelectValue placeholder="Select Status" />
@@ -280,15 +313,12 @@ const DepartmentTickets: React.FC = () => {
                   ))}
                 </SelectContent>
               </Select>
-
-              {/* Remarks */}
               <Textarea
                 placeholder="Add remarks..."
                 value={remarks}
                 onChange={(e) => setRemarks(e.target.value)}
                 rows={4}
               />
-
               <div className="flex justify-end gap-3">
                 <Button variant="outline" onClick={() => setOpenDialog(false)}>
                   Cancel
@@ -310,7 +340,7 @@ const DepartmentTickets: React.FC = () => {
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>AI Explanation</DialogTitle>
-            <DialogDescription className="whitespace-pre-line">
+            <DialogDescription className="whitespace-pre-line text-sm">
               {aiExplanation}
             </DialogDescription>
           </DialogHeader>

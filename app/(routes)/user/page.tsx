@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { v4 as uuidv4 } from "uuid"; // ✅ install with: npm install uuid
+import { v4 as uuidv4 } from "uuid";
 import {
   Sheet,
   SheetContent,
@@ -12,7 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import RaiseTicketDialog from "@/app/components/RaiseTicketDialog";
-import { toast } from "sonner";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface Message {
   sender: "user" | "bot";
@@ -25,9 +25,8 @@ interface Ticket {
   ticket_text: string;
   ticket_files: string[];
   department: string;
-  status: string; // ✅ Added status
+  status: string;
 }
-
 
 function App() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -35,20 +34,20 @@ function App() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loadingTickets, setLoadingTickets] = useState<boolean>(false);
   const [isTicketsOpen, setIsTicketsOpen] = useState(false);
-  const [recordId, setRecordId] = useState<string>(""); // ✅ will assign later
+  const [recordId, setRecordId] = useState<string>("");
   const [inputText, setInputText] = useState<string>("");
   const [file, setFile] = useState<File | null>(null);
   const [openDialog, setOpenDialog] = useState(false);
 
-  // ✅ Create a new chat id when component mounts
+  const [expandedTicket, setExpandedTicket] = useState<string | null>(null);
+
   useEffect(() => {
     setRecordId(uuidv4());
-  
   }, []);
 
   const startNewChat = () => {
     setMessages([]);
-    setRecordId(uuidv4()); // ✅ fresh ID each new chat
+    setRecordId(uuidv4());
   };
 
   const sendMessage = async () => {
@@ -73,21 +72,20 @@ function App() {
 
       const botReply: string = response.data.response || "No response received";
 
-      const botMessage: Message = {
-        sender: "bot",
-        text: botReply,
-        image: null,
-      };
-
-      setMessages((prev) => [...prev, botMessage]);
+      setMessages((prev) => [
+        ...prev,
+        { sender: "bot", text: botReply, image: null },
+      ]);
     } catch (error) {
       console.error("Error fetching bot response:", error);
-      const botMessage: Message = {
-        sender: "bot",
-        text: "⚠️ Error: Unable to get response from server.",
-        image: null,
-      };
-      setMessages((prev) => [...prev, botMessage]);
+      setMessages((prev) => [
+        ...prev,
+        {
+          sender: "bot",
+          text: "⚠️ Error: Unable to get response from server.",
+          image: null,
+        },
+      ]);
     } finally {
       setInputText("");
       setFile(null);
@@ -112,7 +110,7 @@ function App() {
   return (
     <div className="flex flex-col h-screen w-full bg-gray-100">
       {/* Header */}
-      <header className="flex justify-between items-center px-6 py-3  bg-[#a20e37] border-b shadow-sm">
+      <header className="flex justify-between items-center px-6 py-3 bg-[#a20e37] border-b shadow-sm">
         <div className="flex items-center gap-2">
           <img src="/pnb.png" alt="PNB Logo" className="w-20 h-10" />
           <span className="text-lg font-semibold text-white">
@@ -166,7 +164,6 @@ function App() {
                 />
               )}
 
-              {/* Raise Issue button */}
               {msg.sender === "bot" && i === messages.length - 1 && (
                 <button
                   onClick={() => setOpenDialog(true)}
@@ -179,17 +176,21 @@ function App() {
           </div>
         ))}
 
+        {/* Improved Skeleton Loader */}
         {loading && (
           <div className="flex justify-start">
-            <div className="w-40 h-6 bg-gray-300 rounded-md animate-pulse" />
+            <div className="bg-gray-200 rounded-lg p-3 w-48 space-y-2 animate-pulse">
+              <div className="h-3 w-5/6 bg-gray-300 rounded-md" />
+              <div className="h-3 w-4/6 bg-gray-300 rounded-md" />
+              <div className="h-3 w-3/6 bg-gray-300 rounded-md" />
+            </div>
           </div>
         )}
       </main>
 
       {openDialog && (
         <RaiseTicketDialog
-        recordId={recordId}
-          
+          recordId={recordId}
           open={openDialog}
           onClose={() => setOpenDialog(false)}
         />
@@ -210,15 +211,6 @@ function App() {
           className="flex-1 resize-none min-h-[50px]"
         />
 
-        {/* <label className="cursor-pointer">
-          <input
-            type="file"
-            className="hidden"
-            onChange={(e) => setFile(e.target.files?.[0] || null)}
-          />
-          <span className="px-3 py-2 bg-gray-200 rounded-md">📎</span>
-        </label> */}
-
         <Button
           onClick={sendMessage}
           disabled={loading}
@@ -230,96 +222,113 @@ function App() {
 
       {/* Tickets Sidebar */}
       <Sheet open={isTicketsOpen} onOpenChange={setIsTicketsOpen}>
-  <SheetContent side="right" className="p-6 w-[420px] bg-gray-50">
-    <SheetHeader>
-      <SheetTitle className="text-xl font-bold text-gray-800">
-        🎟️ Support Tickets
-      </SheetTitle>
-      <p className="text-sm text-gray-500">
-        Here’s a list of all raised tickets.
-      </p>
-    </SheetHeader>
-
-    {loadingTickets ? (
-      <p className="mt-6 text-gray-600">⏳ Loading tickets...</p>
-    ) : tickets.length === 0 ? (
-      <p className="mt-6 text-gray-500 text-center">No tickets found.</p>
-    ) : (
-      <div className="mt-6 space-y-4 max-h-[80vh] overflow-y-auto pr-2">
-        {tickets.map((ticket, idx) => (
-          <div
-            key={idx}
-            className="rounded-xl border bg-white shadow-md p-5 hover:shadow-lg transition"
-          >
-            {/* Ticket Header */}
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-mono text-gray-500">
-                #{ticket.recordId.slice(0, 8)}...
-              </span>
-              <span className="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-700 font-medium">
-                {ticket.department}
-              </span>
-                 <span
-          className={`text-xs px-2 py-1 rounded-full font-medium
-            ${
-              ticket.status === "Open"
-                ? "bg-yellow-100 text-yellow-700"
-                : ticket.status === "In Progress"
-                ? "bg-blue-100 text-blue-700"
-                : ticket.status === "Resolved"
-                ? "bg-green-100 text-green-700"
-                : ticket.status === "Closed"
-                ? "bg-gray-200 text-gray-700"
-                : "bg-gray-100 text-gray-600"
-            }`}
-        >
-          {ticket.status || "Open"}
-        </span>
-            </div>
-
-            {/* Ticket Text */}
-            <p className="mt-3 text-gray-800 text-sm leading-relaxed">
-              {ticket.ticket_text}
+        <SheetContent side="right" className="p-6 w-[420px] bg-gray-50">
+          <SheetHeader>
+            <SheetTitle className="text-xl font-bold text-gray-800">
+              🎟️ Support Tickets
+            </SheetTitle>
+            <p className="text-sm text-gray-500">
+              Here’s a list of all raised tickets.
             </p>
+          </SheetHeader>
 
-            {/* Files */}
-            {ticket.ticket_files.length > 0 && (
-              <div className="mt-4 grid grid-cols-3 gap-2">
-                {ticket.ticket_files.map((file, i) =>
-                  file.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
-                    <a
-                      key={i}
-                      href={file}
-                      target="_blank"
-                      rel="noopener noreferrer"
+          {loadingTickets ? (
+            <p className="mt-6 text-gray-600">⏳ Loading tickets...</p>
+          ) : tickets.length === 0 ? (
+            <p className="mt-6 text-gray-500 text-center">No tickets found.</p>
+          ) : (
+            <div className="mt-6 space-y-3 max-h-[80vh] overflow-y-auto pr-2">
+              {tickets.map((ticket) => {
+                const isOpen = expandedTicket === ticket.recordId;
+                return (
+                  <motion.div
+                    key={ticket.recordId}
+                    layout
+                    className="bg-white rounded-xl border shadow-sm hover:shadow-md transition cursor-pointer"
+                  >
+                    {/* Card Header */}
+                    <div
+                      className="flex items-center justify-between p-4"
+                      onClick={() =>
+                        setExpandedTicket(isOpen ? null : ticket.recordId)
+                      }
                     >
-                      <img
-                        src={file}
-                        alt={`file-${i}`}
-                        className="w-full h-20 rounded-md border object-cover cursor-pointer hover:opacity-80 transition"
-                      />
-                    </a>
-                  ) : (
-                    <a
-                      key={i}
-                      href={file}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="col-span-3 flex items-center gap-2 text-xs text-blue-600 hover:underline"
-                    >
-                      📄 File {i + 1}
-                    </a>
-                  )
-                )}
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-    )}
-  </SheetContent>
-</Sheet>
+                      <span className="text-xs font-mono text-gray-500">
+                        #{ticket.recordId.slice(0, 8)}...
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-700">
+                          {ticket.department}
+                        </span>
+                        <span
+                          className={`text-xs px-2 py-1 rounded-full font-medium ${
+                            ticket.status === "Open"
+                              ? "bg-yellow-100 text-yellow-700"
+                              : ticket.status === "In Progress"
+                              ? "bg-blue-100 text-blue-700"
+                              : ticket.status === "Resolved"
+                              ? "bg-green-100 text-green-700"
+                              : "bg-gray-200 text-gray-700"
+                          }`}
+                        >
+                          {ticket.status || "Open"}
+                        </span>
+                      </div>
+                    </div>
 
+                    {/* Expandable Content */}
+                    <AnimatePresence initial={false}>
+                      {isOpen && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="px-4 pb-4 space-y-3 text-sm"
+                        >
+                          <p className="text-gray-800 leading-relaxed">
+                            {ticket.ticket_text}
+                          </p>
+
+                          {ticket.ticket_files.length > 0 && (
+                            <div className="grid grid-cols-3 gap-2">
+                              {ticket.ticket_files.map((file, i) =>
+                                file.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                                  <a
+                                    key={i}
+                                    href={file}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                  >
+                                    <img
+                                      src={file}
+                                      alt={`file-${i}`}
+                                      className="w-full h-20 rounded-md border object-cover cursor-pointer hover:opacity-80 transition"
+                                    />
+                                  </a>
+                                ) : (
+                                  <a
+                                    key={i}
+                                    href={file}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="col-span-3 flex items-center gap-2 text-xs text-blue-600 hover:underline"
+                                  >
+                                    📄 File {i + 1}
+                                  </a>
+                                )
+                              )}
+                            </div>
+                          )}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </motion.div>
+                );
+              })}
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
